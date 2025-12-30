@@ -8,13 +8,12 @@ import {
   Film,
   ArrowRight,
   Mail,
-  Lock,
   ExternalLink,
   Quote,
   Check,
   Ticket,
   LogIn,
-  Users,
+  User,
 } from "lucide-react";
 
 // ------------------------------------------------------------
@@ -53,13 +52,11 @@ const YT = {
   ],
 };
 
-// ✅ Option 1: Stripe Payment Links
-// Paste your Stripe Payment Link URLs here. Example:
-//   "https://buy.stripe.com/xxxx"
-// If a link is blank, the button will route to #/contact.
+// Stripe Payment Links (Paste your real Stripe payment link URLs here)
+// If left blank, checkout buttons will route to #/contact.
 const CHECKOUT = {
-  hotelHack: "https://buy.stripe.com/PLACEHOLDER_HOTEL_599", // $599
-  fullCourse: "https://buy.stripe.com/PLACEHOLDER_FULL_5000", // $5,000
+  hotelHack: "", // e.g. "https://buy.stripe.com/xxxx"
+  fullCourse: "", // e.g. "https://buy.stripe.com/yyyy"
 };
 
 // Optional cross-property authority + community destination
@@ -108,29 +105,6 @@ function isHttpUrl(s) {
   return typeof s === "string" && /^https?:\/\//i.test(s.trim());
 }
 
-function isCheckoutReady(url) {
-  if (!isHttpUrl(url)) return false;
-  // Treat placeholders as "not set" so preview doesn't send users to 404.
-  return !/PLACEHOLDER/i.test(url);
-}
-
-function goHash(path) {
-  if (typeof window === "undefined") return;
-  const next = path.startsWith("#") ? path : `#${path}`;
-  if (window.location.hash === next) {
-    // force a hashchange-like update in some preview sandboxes
-    window.location.hash = "#/home";
-    window.location.hash = next;
-  } else {
-    window.location.hash = next;
-  }
-}
-
-function getCheckoutHref(kind) {
-  const raw = kind === "hotel" ? CHECKOUT.hotelHack : CHECKOUT.fullCourse;
-  return isCheckoutReady(raw) ? raw.trim() : "#/contact";
-}
-
 function PageShell({ children }) {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
@@ -170,7 +144,7 @@ function TopNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-neutral-950/70 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <button onClick={() => goHash("#/home")} className="group flex items-center gap-3 text-left">
+        <a href="#/home" className="group flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
             <img
               src={ASSETS.logoSrc}
@@ -186,13 +160,13 @@ function TopNav() {
             <div className="text-sm font-semibold tracking-wide">{BRAND.name}</div>
             <div className="text-xs text-neutral-400">{BRAND.subtitle}</div>
           </div>
-        </button>
+        </a>
 
         <nav className="hidden items-center gap-1 lg:flex">
           {NAV.map((item) => (
-            <button
+            <a
               key={item.key}
-              onClick={() => goHash(`#/${item.key}`)}
+              href={`#/${item.key}`}
               className={cx(
                 "rounded-2xl px-3 py-2 text-sm transition",
                 active(item.key)
@@ -201,17 +175,19 @@ function TopNav() {
               )}
             >
               {item.label}
-            </button>
+            </a>
           ))}
-          <button
-            onClick={() => goHash("#/pricing")}
+          <a
+            href="#/pricing"
             className="ml-2 inline-flex items-center gap-2 rounded-2xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-neutral-950 shadow-lg shadow-yellow-500/10 hover:bg-yellow-400"
           >
             View tiers <ArrowRight className="h-4 w-4" />
-          </button>
+          </a>
         </nav>
 
         <button
+          type="button"
+          aria-label="Open menu"
           onClick={() => setOpen((v) => !v)}
           className="lg:hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
         >
@@ -230,32 +206,28 @@ function TopNav() {
             <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
               <div className="grid grid-cols-2 gap-2">
                 {NAV.map((item) => (
-                  <button
+                  <a
                     key={item.key}
-                    onClick={() => {
-                      goHash(`#/${item.key}`);
-                      setOpen(false);
-                    }}
+                    href={`#/${item.key}`}
+                    onClick={() => setOpen(false)}
                     className={cx(
-                      "rounded-2xl px-3 py-2 text-sm transition text-left",
+                      "rounded-2xl px-3 py-2 text-sm transition",
                       active(item.key)
                         ? "bg-white/10 text-white"
                         : "text-neutral-300 hover:bg-white/5 hover:text-white"
                     )}
                   >
                     {item.label}
-                  </button>
+                  </a>
                 ))}
               </div>
-              <button
-                onClick={() => {
-                  goHash("#/pricing");
-                  setOpen(false);
-                }}
+              <a
+                href="#/pricing"
+                onClick={() => setOpen(false)}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-neutral-950"
               >
                 View tiers <ArrowRight className="h-4 w-4" />
-              </button>
+              </a>
             </div>
           </motion.div>
         )}
@@ -270,14 +242,15 @@ function SectionTitle({ eyebrow, title, desc }) {
       {eyebrow && (
         <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">{eyebrow}</div>
       )}
-      <div className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl break-normal">{title}</div>
-      {desc && <div className="mt-3 max-w-2xl text-neutral-300 break-normal">{desc}</div>}
+      <div className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</div>
+      {desc && <div className="mt-3 max-w-2xl text-neutral-300">{desc}</div>}
     </div>
   );
 }
 
 function Button({ href, onClick, variant = "primary", children }) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition";
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition whitespace-nowrap";
   const styles =
     variant === "primary"
       ? "bg-yellow-500 text-neutral-950 hover:bg-yellow-400 shadow-lg shadow-yellow-500/10"
@@ -286,18 +259,10 @@ function Button({ href, onClick, variant = "primary", children }) {
       : "border border-white/10 bg-transparent text-white hover:bg-white/5";
 
   if (href) {
-    const isExternal = isHttpUrl(href);
-    const isInternalHash = typeof href === "string" && href.startsWith("#/");
-
+    const isExternal = href.startsWith("http");
     return (
       <a
         href={href}
-        onClick={(e) => {
-          if (isInternalHash) {
-            e.preventDefault();
-            goHash(href);
-          }
-        }}
         target={isExternal ? "_blank" : undefined}
         rel={isExternal ? "noreferrer" : undefined}
         className={cx(base, styles)}
@@ -307,7 +272,6 @@ function Button({ href, onClick, variant = "primary", children }) {
       </a>
     );
   }
-
   return (
     <button onClick={onClick} className={cx(base, styles)}>
       {children}
@@ -322,8 +286,8 @@ function Pill({ icon: Icon, title, desc }) {
         <Icon className="h-5 w-5 text-yellow-400" />
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-white break-normal">{title}</div>
-        <div className="mt-1 text-sm text-neutral-400 break-normal leading-relaxed">{desc}</div>
+        <div className="text-sm font-semibold text-white whitespace-normal break-normal">{title}</div>
+        <div className="mt-1 text-sm text-neutral-400 whitespace-normal break-normal">{desc}</div>
       </div>
     </div>
   );
@@ -332,7 +296,7 @@ function Pill({ icon: Icon, title, desc }) {
 function Stat({ value, label }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-      <div className="text-lg font-semibold leading-tight tracking-tight text-white sm:text-2xl whitespace-normal break-normal">
+      <div className="text-xl font-semibold leading-tight tracking-tight text-white sm:text-2xl whitespace-normal break-normal">
         {value}
       </div>
       <div className="mt-1 text-sm text-neutral-400 whitespace-normal break-normal">{label}</div>
@@ -364,62 +328,54 @@ function YouTubeEmbed({ videoId, title }) {
 function Home() {
   return (
     <div className="space-y-12">
+      {/* HERO */}
       <section className="grid items-center gap-10 lg:grid-cols-2">
         <div>
           <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-neutral-300">
-            <Shield className="h-4 w-4 text-yellow-400" /> Documented systems. Real leverage. Ethical playbooks.
+            <Shield className="h-4 w-4 text-yellow-400" /> Real execution. Discreet systems. High signal.
           </div>
 
           <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
-            The masterclass for people who want the five-star life without the five-star burn.
+            Live the five star lifestyle without paying five star prices.
           </h1>
 
           <p className="mt-4 max-w-xl text-neutral-300">
-            The Upgrade Society is a premium, Netflix-style masterclass built around one idea: access beats price. You will learn the
-            architecture of access - hotels, points, private aviation pathways, elite rentals, fashion sourcing, and business leverage.
+            Upgrade into first class, suites, and top tier experiences for less.
+          </p>
+          <p className="mt-2 max-w-xl text-neutral-300">
+            A premium, Netflix style masterclass that teaches how access works. Hotels, flights, points, private aviation pathways,
+            elite rentals, luxury sourcing, and business leverage.
+          </p>
+          <p className="mt-2 max-w-xl text-sm text-neutral-400">
+            Most members see their first tangible win within their first booking.
+          </p>
+          <p className="mt-2 max-w-xl text-sm text-neutral-400">
+            Some wins are available immediately inside the portal. Others land within three to four days depending on your booking window.
+          </p>
+          <p className="mt-2 max-w-xl text-sm text-neutral-400">
+            Example: suite upgrades, first class outcomes, premium rentals, without premium pricing.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button href="#/pricing">
-              <Crown className="h-4 w-4" /> Choose your tier
+              <Crown className="h-4 w-4" /> View tiers
             </Button>
             <Button href="#/program" variant="ghost">
-              <Sparkles className="h-4 w-4" /> What you get
+              Read the program overview <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button href="#/testimonials" variant="ghost">
-              <Play className="h-4 w-4" /> Results
+            <Button href="#/contact" variant="ghost">
+              Concierge application <Mail className="h-4 w-4" />
             </Button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-neutral-400">
-            <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-              <Lock className="h-4 w-4 text-yellow-400" /> Private members portal
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-              <Shield className="h-4 w-4 text-yellow-400" /> Secure Stripe checkout
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-              <Sparkles className="h-4 w-4 text-yellow-400" /> Instant access after purchase
-            </span>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Stat value="4K" label="Premium, docu-style delivery" />
-            <Stat value="30-Day" label="Action guarantee" />
-            <Stat value="Architecture" label="of access framework" />
           </div>
 
           <div className="mt-6 rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-5">
             <div className="flex items-start gap-3">
               <Quote className="mt-0.5 h-5 w-5 text-yellow-400" />
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-white">The headline advantage</div>
-                <div className="mt-1 text-sm text-neutral-200 break-normal">
-                  Full Course members gain access to our XO Reserve position - an aviation membership that typically requires a $250,000 deposit
-                  plus $995/year. You pay none of that. You simply pay for your seat when you fly.
-                </div>
-                <div className="mt-3 text-xs text-neutral-300">
-                  Safety first: bookings are coordinated with properly certificated operators.
+                <div className="text-sm font-semibold text-white">A clean distinction</div>
+                <div className="mt-1 text-sm text-neutral-200 whitespace-normal break-normal">
+                  The Full Course teaches the system. Concierge is separate and application only. We execute using our position and
+                  relationships. You simply approve.
                 </div>
               </div>
             </div>
@@ -428,27 +384,107 @@ function Home() {
 
         <div className="space-y-4">
           <YouTubeEmbed videoId={YT.heroVideoId} title="Upgrade Society - Sizzle" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Pill icon={Film} title="Hero sizzle reel" desc="A premium trailer that sets the tone - cinematic, controlled, high signal." />
-            <Pill icon={Users} title="Private member access" desc="A members-only portal for community updates and next steps." />
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">How it works</div>
+            <div className="mt-2 text-2xl font-semibold">Learn it, or have it done for you</div>
+            <p className="mt-3 text-neutral-300">
+              Two entry points. One system. Choose the level of support that matches your time, lifestyle, and goals.
+              <span className="ml-2 text-neutral-200">Designed for people who execute.</span>
+            </p>
+          </div>
+          <div className="flex items-end justify-start lg:justify-end">
+            <Button href="#/pricing" variant="ghost">
+              Compare tiers <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-[28px] border border-white/10 bg-neutral-950/40 p-6">
+            <div className="text-sm font-semibold">Full Course</div>
+            <div className="mt-2 text-sm text-neutral-300">
+              You learn the architecture of access across hotels, flights, points, private aviation pathways, rentals, luxury sourcing,
+              and business leverage.
+            </div>
+            <div className="mt-4 flex gap-3">
+              <Button href="#/program" variant="ghost">
+                See the curriculum <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-yellow-500/30 bg-yellow-500/10 p-6">
+            <div className="text-sm font-semibold text-white">Concierge</div>
+            <div className="mt-2 text-sm text-neutral-200">
+              Done for you execution. Direct access to Kris and team. We leverage our position and relationships across luxury travel,
+              sourcing, and business optimization.
+            </div>
+            <div className="mt-4 flex gap-3">
+              <Button href="#/contact">
+                Request application <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <Pill icon={Shield} title="Upgrade mindset" desc="Outcome first. Status stacking. Flex windows. Track everything." />
-        <Pill icon={Sparkles} title="Quick wins" desc="Start winning today - loyalty ecosystems, status matches, and clean leverage." />
-        <Pill icon={Film} title="Docu-style teaching" desc="High production, high signal, built to hold your attention." />
+      {/* WHAT YOU UNLOCK */}
+      <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">What you unlock</div>
+            <div className="mt-2 text-2xl font-semibold">Luxury outcomes, explained clearly</div>
+            <p className="mt-3 text-neutral-300">
+              This is a lifestyle ecosystem. Learn the system, then practice it in the real world.
+            </p>
+            <p className="mt-2 text-sm text-neutral-400">
+              Quarterly city meetups give members a reason to apply what they learn and meet serious operators.
+            </p>
+          </div>
+          <div className="flex items-end justify-start lg:justify-end">
+            <Button href="#/pricing" variant="ghost">
+              Choose your tier <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {[
+            ["Hotels and suites", "Rates, upgrades, and status strategies"],
+            ["Flights and points", "Smarter redemptions and routing"],
+            ["Private aviation pathways", "How access is structured"],
+            ["Elite rentals and exotics", "Premium outcomes with better leverage"],
+          ].map(([t, d]) => (
+            <div key={t} className="rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
+              <div className="text-sm font-semibold whitespace-normal break-normal">{t}</div>
+              <div className="mt-1 text-sm text-neutral-400 whitespace-normal break-normal">{d}</div>
+            </div>
+          ))}
+
+          <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-5 sm:col-span-2">
+            <div className="text-sm font-semibold whitespace-normal break-normal">More inside</div>
+            <div className="mt-1 text-sm text-neutral-400 whitespace-normal break-normal">
+              Luxury sourcing, business leverage, and additional releases inside the members portal.
+            </div>
+          </div>
+        </div>
       </section>
 
+      {/* GUARANTEE */}
       <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Guarantee</div>
-            <div className="mt-2 text-2xl font-semibold">30-Day Action Guarantee</div>
+            <div className="mt-2 text-2xl font-semibold">30 Day Action Guarantee</div>
             <p className="mt-3 text-neutral-300">
-              Complete the 7-Day Quick Wins Challenge and implement at least 3 strategies. If you do not see meaningful savings or value within
-              30 days, we will provide 1-on-1 coaching to troubleshoot - or issue a full refund.
+              Complete the 7 Day Quick Wins Challenge and implement at least 3 strategies. If you do not see meaningful savings or value within
+              30 days, we will provide 1 on 1 coaching to troubleshoot and optimize your approach.
             </p>
           </div>
           <div className="flex items-end justify-start lg:justify-end">
@@ -467,14 +503,18 @@ function Program() {
     <div className="space-y-10">
       <SectionTitle
         eyebrow="Program"
-        title="The architecture of access - organized and repeatable"
-        desc="This is not motivation. It is a playbook: outcomes, systems, and leverage that compound over time."
+        title="The architecture of access, organized and repeatable"
+        desc="This is not motivation. It is a playbook of outcomes, systems, and leverage that compound over time."
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Pill icon={Shield} title="Upgrade mindset" desc="Outcome first. Status stacking. Flex windows. Track everything." />
-        <Pill icon={Sparkles} title="Quick wins" desc="Start winning today - loyalty ecosystems, status matches, and clean leverage." />
-        <Pill icon={Film} title="Docu-style teaching" desc="High production, high signal, built to hold your attention." />
+        <Pill
+          icon={Sparkles}
+          title="Quick wins"
+          desc="Start winning today. Loyalty ecosystems, status matches, and clean leverage."
+        />
+        <Pill icon={Film} title="Docu style teaching" desc="High production delivery designed to hold attention." />
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
@@ -482,21 +522,21 @@ function Program() {
           <div className="lg:col-span-2">
             <div className="text-2xl font-semibold">What is inside (high level)</div>
             <p className="mt-3 text-neutral-300">
-              Hotels. Flights. Points strategy. Private aviation pathways. Elite rentals. Fashion sourcing. Business credit and funding strategy.
-              Tax optimization frameworks.
+              Hotels. Flights. Points strategy. Private aviation pathways. Elite rentals. Fashion sourcing. Business
+              credit and funding strategy. Tax optimization frameworks. Additional releases inside the members portal.
             </p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {[
                 ["Hotels", "Suite upgrades, status strategies, and rate leverage"],
                 ["Flights + Points", "Business-class outcomes with smarter redemptions"],
-                ["Private Aviation", "XO Reserve position access (serious advantage)"],
+                ["Private Aviation", "Private aviation pathways"],
                 ["Elite Rentals", "Pay for economy, drive premium"],
-                ["Fashion", "Designer sourcing with request workflow"],
+                ["Fashion", "Luxury sourcing pathways"],
                 ["Business Leverage", "Credit + funding frameworks to move faster"],
               ].map(([t, d]) => (
                 <div key={t} className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold">{t}</div>
-                  <div className="mt-1 text-sm text-neutral-400">{d}</div>
+                  <div className="text-sm font-semibold whitespace-normal break-normal">{t}</div>
+                  <div className="mt-1 text-sm text-neutral-400 whitespace-normal break-normal">{d}</div>
                 </div>
               ))}
             </div>
@@ -509,7 +549,7 @@ function Program() {
                 (x) => (
                   <div key={x} className="flex gap-2">
                     <Check className="mt-0.5 h-4 w-4 text-yellow-400" />
-                    <span>{x}</span>
+                    <span className="whitespace-normal break-normal">{x}</span>
                   </div>
                 )
               )}
@@ -530,95 +570,77 @@ function Program() {
 }
 
 function Pricing() {
-  const hotelHref = getCheckoutHref("hotel");
-  const fullHref = getCheckoutHref("full");
+  const hotelHref = isHttpUrl(CHECKOUT.hotelHack) ? CHECKOUT.hotelHack.trim() : "#/contact";
+  const fullHref = isHttpUrl(CHECKOUT.fullCourse) ? CHECKOUT.fullCourse.trim() : "#/contact";
 
   return (
     <div className="space-y-10">
-      <SectionTitle eyebrow="Pricing" title="Three ways to enter" desc="Choose the level of access you want - then execute." />
+      <SectionTitle eyebrow="Pricing" title="Choose your level of access" desc="Learn the system, or have it executed for you." />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <PricingCard
           title="Hotel Hack Only"
           price="$599"
-          subtitle="Standalone module - no additional access"
+          subtitle="Hotels only. Fast ROI."
           bullets={[
             "Hotel strategy module",
-            "Rate + status frameworks",
+            "Rate and status frameworks",
             "Quick wins checklist",
-            "No member areas / concierge / aviation access",
+            "Digital education. Delivered immediately. Final sale.",
           ]}
-          cta={{ label: isCheckoutReady(CHECKOUT.hotelHack) ? "Checkout" : "Enroll", href: hotelHref }}
+          cta={{ label: isHttpUrl(CHECKOUT.hotelHack) ? "Checkout" : "Enroll", href: hotelHref }}
         />
 
         <PricingCard
           title="Full Course"
           price="$5,000"
-          subtitle="All hacks + member access (Founder pricing: first 50 enrollments)"
+          subtitle="Full program and members portal. Founder cohort: limited allocation. Details at checkout."
           highlight
           bullets={[
             "Full masterclass (all modules)",
-            "Founder pricing applies automatically at checkout for the first 50 enrollments",
-            "Member access + ticketed request lanes",
-            "Fashion request lane ($99 request fee; credited toward purchase)",
-            "Private jet request lane ($300 request fee)",
-            "XO Reserve position access (no $250K deposit required)",
+            "Members portal and private community",
+            "Education across hotels, flights, private aviation pathways, exotics, sourcing, and funding",
+            "Access frameworks built from real concierge execution",
           ]}
-          cta={{ label: isCheckoutReady(CHECKOUT.fullCourse) ? "Checkout" : "Apply / Buy", href: fullHref }}
+          cta={{ label: isHttpUrl(CHECKOUT.fullCourse) ? "Checkout" : "Apply / Buy", href: fullHref }}
         />
 
         <PricingCard
-          title="Concierge - Done-For-You"
+          title="Concierge, Done For You"
           price="$25,000"
-          subtitle="Invitation-only"
-          bullets={["White-glove execution", "Priority scheduling", "Private strategy sessions", "Invitation-only review"]}
-          cta={{ label: "Request invitation", href: "#/contact" }}
+          subtitle="Application only. No refunds."
+          bullets={["Done for you execution", "Direct line to Kris and team, 24/7", "Private strategy sessions", "Priority scheduling"]}
+          cta={{ label: "Request application", href: "#/contact" }}
         />
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="text-2xl font-semibold">The ROI headline (why the Full Course exists)</div>
+            <div className="text-2xl font-semibold">Why the system works</div>
             <p className="mt-3 text-neutral-300">
-              XO Reserve typically requires a $250,000 deposit plus a $995 annual membership fee. Full Course members gain access through our
-              position - meaning you pay none of that. You simply pay for your seat when you fly.
+              The Full Course teaches a repeatable framework for luxury outcomes across hotels, flights, points, private aviation pathways,
+              elite rentals, luxury sourcing, and business leverage. Concierge is a separate, application only service where we execute on your
+              behalf using our position and relationships. You simply approve.
             </p>
-            <div className="mt-4 text-sm text-neutral-300">This is what “architecture of access” looks like in practice.</div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-4">
-                <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Scenario</div>
-                <div className="mt-2 text-sm text-neutral-200">One jet seat booked through our position</div>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-4">
-                <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">You avoid</div>
-                <div className="mt-2 text-sm text-neutral-200">$250,000 deposit + $995/year gatekeeping</div>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-4">
-                <div className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Outcome</div>
-                <div className="mt-2 text-sm text-neutral-200">Access that most people never touch</div>
-              </div>
-            </div>
-
-            <div className="mt-4 text-xs text-neutral-500">Illustrative: seat pricing and availability vary by route and operator.</div>
+            <div className="mt-4 text-sm text-neutral-300">Clear education in the course. Clean execution in Concierge.</div>
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
-            <div className="text-sm font-semibold">Request policy</div>
+            <div className="text-sm font-semibold">Clear distinction</div>
             <div className="mt-3 space-y-2 text-sm text-neutral-300">
               <div className="flex gap-2">
-                <Ticket className="mt-0.5 h-4 w-4 text-yellow-400" />
-                <span>Fashion: $99 request fee per ticket (credited toward purchase when sourced; otherwise released).</span>
+                <Check className="mt-0.5 h-4 w-4 text-yellow-400" />
+                <span className="whitespace-normal break-normal">Full Course teaches you the system and how access works.</span>
               </div>
               <div className="flex gap-2">
-                <Ticket className="mt-0.5 h-4 w-4 text-yellow-400" />
-                <span>Private jet: $300 request fee per ticket (helps prioritize confirmed travel intent).</span>
+                <Check className="mt-0.5 h-4 w-4 text-yellow-400" />
+                <span className="whitespace-normal break-normal">Concierge executes using our position and relationships. You simply approve.</span>
               </div>
             </div>
             <div className="mt-5">
               <Button href="#/contact" variant="ghost">
-                Ask questions <Mail className="h-4 w-4" />
+                Ask a question <Mail className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -626,8 +648,8 @@ function Pricing() {
       </section>
 
       <section className="text-xs text-neutral-500">
-        Note: XO Reserve access is provided via our position and vendor relationships; actual flight pricing and availability vary by route,
-        operator, and scheduling windows.
+        Full Course includes a 30 Day Action Guarantee. Concierge is application only and non refundable. Digital education is delivered
+        immediately after purchase and is considered final.
       </section>
     </div>
   );
@@ -643,19 +665,21 @@ function PricingCard({ title, price, subtitle, bullets, cta, highlight }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-sm font-semibold break-normal">{title}</div>
-          <div className="mt-1 text-xs text-neutral-400 break-normal">{subtitle}</div>
+          <div className="text-sm font-semibold whitespace-normal break-normal">{title}</div>
+          <div className="mt-1 text-xs text-neutral-400 whitespace-normal break-normal">{subtitle}</div>
         </div>
         {highlight && (
-          <span className="shrink-0 rounded-2xl bg-yellow-500 px-3 py-1 text-xs font-semibold text-neutral-950">Best value</span>
+          <span className="rounded-2xl bg-yellow-500 px-3 py-1 text-xs font-semibold text-neutral-950 whitespace-nowrap">
+            Best value
+          </span>
         )}
       </div>
-      <div className="mt-5 text-3xl font-semibold tracking-tight">{price}</div>
+      <div className="mt-5 text-3xl font-semibold tracking-tight whitespace-nowrap">{price}</div>
       <ul className="mt-4 space-y-2 text-sm text-neutral-300">
         {bullets.map((b, idx) => (
-          <li key={`${title}-${idx}`} className="flex gap-2">
-            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-400" />
-            <span className="break-normal">{b}</span>
+          <li key={`${b}-${idx}`} className="flex gap-2">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-yellow-400 shrink-0" />
+            <span className="whitespace-normal break-normal">{b}</span>
           </li>
         ))}
       </ul>
@@ -680,10 +704,10 @@ function Testimonials() {
       <section className="grid gap-4 lg:grid-cols-3">
         {YT.testimonials.map((t) => (
           <div key={t.id} className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="text-sm font-semibold text-white break-normal">{t.name}</div>
-            <div className="mt-1 text-xs text-neutral-400 break-normal">{t.note}</div>
+            <div className="text-sm font-semibold text-white whitespace-normal break-normal">{t.name}</div>
+            <div className="mt-1 text-xs text-neutral-400 whitespace-normal break-normal">{t.note}</div>
             <div className="mt-4">
-              <YouTubeEmbed videoId={t.id} title={`Testimonial - ${t.name}`} />
+              <YouTubeEmbed videoId={t.id} title={`Testimonial — ${t.name}`} />
             </div>
           </div>
         ))}
@@ -697,22 +721,18 @@ function Testimonials() {
               <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
                 <div className="flex items-start gap-3">
                   <Quote className="mt-0.5 h-5 w-5 text-yellow-400" />
-                  <div className="min-w-0">
-                    <div className="font-semibold break-normal">“This course paid for itself in one booking.”</div>
-                    <div className="mt-1 text-neutral-300 break-normal">
-                      Stayed in an $800/night suite for a fraction using the hotel strategy.
-                    </div>
+                  <div>
+                    <div className="font-semibold">“This course paid for itself in one booking.”</div>
+                    <div className="mt-1 text-neutral-300">Stayed in an $800/night suite for a fraction using the hotel strategy.</div>
                   </div>
                 </div>
               </div>
               <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
                 <div className="flex items-start gap-3">
                   <Quote className="mt-0.5 h-5 w-5 text-yellow-400" />
-                  <div className="min-w-0">
-                    <div className="font-semibold break-normal">“Status stacking changed my travel life.”</div>
-                    <div className="mt-1 text-neutral-300 break-normal">
-                      Upgraded rental status across brands and started consistently driving premium.
-                    </div>
+                  <div>
+                    <div className="font-semibold">“Status stacking changed my travel life.”</div>
+                    <div className="mt-1 text-neutral-300">Upgraded rental status across brands and started consistently driving premium.</div>
                   </div>
                 </div>
               </div>
@@ -721,10 +741,8 @@ function Testimonials() {
 
           <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-6">
             <div className="text-sm font-semibold">Want your result featured?</div>
-            <p className="mt-2 text-sm text-neutral-400 break-normal">
-              After your first win, record a short clip and submit it. Real proof compounds community trust.
-            </p>
-            <div className="mt-5">
+            <p className="mt-2 text-sm text-neutral-400">After your first win, record a short clip and submit it. Real proof compounds trust.</p>
+            <div className="mt-5 flex gap-3">
               <Button href="#/contact" variant="ghost">
                 Submit a testimonial <ArrowRight className="h-4 w-4" />
               </Button>
@@ -758,33 +776,21 @@ function About() {
                 }}
               />
             </div>
-            <div className="min-w-0">
-              <div className="text-lg font-semibold break-normal">{BRAND.presenter}</div>
-              <div className="text-sm text-neutral-400 break-normal">{BRAND.role}</div>
+            <div>
+              <div className="text-lg font-semibold">{BRAND.presenter}</div>
+              <div className="text-sm text-neutral-400">{BRAND.role}</div>
             </div>
           </div>
 
-          <p className="mt-5 text-sm text-neutral-300 break-normal">
-            This program is built from lived execution: concierge work for high-performing clients, travel systems, and deal pathways that turn
-            "luxury" into a repeatable process.
-          </p>
-
-          <p className="mt-3 text-sm text-neutral-400 break-normal">
-            From the creator of{" "}
-            {LINKS.theStandard ? (
-              <a href={LINKS.theStandard} target="_blank" rel="noreferrer" className="underline hover:text-white">
-                THE STANDARD
-              </a>
-            ) : (
-              <span className="underline decoration-neutral-700">THE STANDARD</span>
-            )}{" "}
-            (docu-series).
+          <p className="mt-5 text-sm text-neutral-300">
+            Built from real world execution. Private concierge work, complex itineraries, and sourcing for clients who value time, discretion, and outcomes over discounts.
+            <span className="ml-1">Built from real concierge execution for clients spending six and seven figures annually.</span>
           </p>
 
           <div className="mt-5 rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
             <div className="flex items-start gap-3">
               <Quote className="mt-0.5 h-5 w-5 text-yellow-400" />
-              <div className="text-sm text-neutral-300 break-normal">“Luxury isn’t expensive - ignorance is.”</div>
+              <div className="text-sm text-neutral-300">“Luxury isn’t expensive—ignorance is.”</div>
             </div>
           </div>
         </div>
@@ -792,31 +798,26 @@ function About() {
         <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
           <div className="text-sm font-semibold">What makes this different</div>
           <div className="mt-3 space-y-3 text-sm text-neutral-300">
-            <div className="flex gap-2">
-              <span className="text-yellow-400">•</span>
-              <span className="break-normal">Built around systems, not inspiration</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-yellow-400">•</span>
-              <span className="break-normal">High-production delivery that holds attention</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-yellow-400">•</span>
-              <span className="break-normal">A real access headline: XO Reserve position pathway</span>
-            </div>
+            <div className="flex gap-2"><span className="text-yellow-400">•</span> Built from live concierge execution—not theory</div>
+            <div className="flex gap-2"><span className="text-yellow-400">•</span> Systems used for real travel, sourcing, and deal flow</div>
+            <div className="flex gap-2"><span className="text-yellow-400">•</span> High-production delivery designed to hold attention</div>
+            <div className="flex gap-2"><span className="text-yellow-400">•</span> A genuine access advantage: XO Reserve pathway</div>
+            <div className="flex gap-2"><span className="text-yellow-400">•</span> From the creator and host of THE STANDARD, A Rolls Royce Life</div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
-            <div className="text-sm font-semibold">Members portal</div>
-            <p className="mt-2 text-sm text-neutral-300 break-normal">
-              After purchase, members will be routed to the community destination (Circle or Discord).
-            </p>
-            <div className="mt-4">
-              <Button href="#/members" variant="ghost">
-                View members portal <LogIn className="h-4 w-4" />
-              </Button>
+          {(LINKS.theStandard && isHttpUrl(LINKS.theStandard)) && (
+            <div className="mt-6 rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
+              <div className="text-sm font-semibold">A quiet credential</div>
+              <p className="mt-2 text-sm text-neutral-300">
+                For those who prefer context: THE STANDARD is a documentary project that reflects the same taste level and restraint.
+              </p>
+              <div className="mt-4">
+                <Button href={LINKS.theStandard} variant="ghost">
+                  Visit THE STANDARD <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
     </div>
@@ -829,32 +830,32 @@ function FAQ() {
       <SectionTitle
         eyebrow="FAQ"
         title="Clear answers, no noise"
-        desc="This is where objections get handled - quietly and confidently."
+        desc="Clear answers, designed to help you decide quickly and confidently."
       />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <FaqCard
-          q="Is the XO Reserve access real?"
-          a="Full Course members gain access through our position. You don’t pay the $250,000 deposit or the $995 annual membership fee. You pay for your seat when you fly. Availability and pricing depend on route and operator."
+          q="Is the private aviation advantage real?"
+          a="Yes. The course explains how private aviation access works and what creates truly affordable outcomes. Concierge clients benefit from our position and relationships, which can remove traditional gatekeeping such as large deposits and annual membership fees. Availability and pricing depend on route, operator, and scheduling windows."
         />
         <FaqCard
-          q="Why are there request fees for fashion and private jets?"
-          a="To protect time, quality, and speed. Fashion tickets include a $99 request fee that credits toward purchases if we source successfully; otherwise it’s released. Private jet requests carry a $300 fee to reduce non-serious inquiries."
+          q="What is the difference between Full Course and Concierge?"
+          a="Full Course teaches you the system and how access works across hotels, flights, private aviation pathways, exotics, sourcing, and funding. Concierge is application only and we execute for you with direct access to Kris and team."
         />
         <FaqCard
           q="What does the Hotel Hack Only tier include?"
-          a="The hotel module only. No member access lanes, no concierge, and no aviation pathways."
+          a="Hotels only. This tier does not include the members portal, private aviation pathways, or done for you services."
         />
         <FaqCard
-          q="What does Invitation-only mean for Concierge?"
-          a="It’s a fit check. We keep the roster small to maintain response time and outcomes."
+          q="What does application only mean for Concierge?"
+          a="Concierge is application only to protect response time and outcomes. If accepted, you receive done for you execution and direct access to Kris and the team."
         />
         <FaqCard
           q="What if I don’t see results?"
-          a="Follow the 7-Day Quick Wins Challenge and implement at least three strategies. If you don’t see meaningful value within 30 days, we’ll coach you 1-on-1 or refund."
+          a="Complete the 7 Day Quick Wins Challenge and implement at least 3 strategies. If you do not see meaningful savings or value within 30 days, we will provide 1 on 1 coaching to troubleshoot and optimize your approach."
         />
         <FaqCard
-          q="Is this legal / ethical?"
+          q="Is this legal and ethical?"
           a="We operate within policies and laws. The course teaches frameworks and best practices, not shortcuts that risk reputations."
         />
       </section>
@@ -865,8 +866,70 @@ function FAQ() {
 function FaqCard({ q, a }) {
   return (
     <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
-      <div className="text-sm font-semibold text-white break-normal">{q}</div>
-      <div className="mt-2 text-sm text-neutral-300 break-normal">{a}</div>
+      <div className="text-sm font-semibold text-white whitespace-normal break-normal">{q}</div>
+      <div className="mt-2 text-sm text-neutral-300 whitespace-normal break-normal">{a}</div>
+    </div>
+  );
+}
+
+function Members() {
+  const destination = isHttpUrl(LINKS.circle) ? LINKS.circle : isHttpUrl(LINKS.discord) ? LINKS.discord : "";
+
+  return (
+    <div className="space-y-10">
+      <SectionTitle eyebrow="Members" title="Members portal" desc="Secure access is delivered immediately after purchase." />
+
+      <section className="rounded-[28px] border border-white/10 bg-white/5 p-7">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <div className="text-2xl font-semibold">Access</div>
+            <p className="mt-3 text-sm text-neutral-300">
+              Immediately after checkout, you will receive an email with your private portal access details. This page confirms your entry point.
+            </p>
+            <div className="mt-5 rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
+              <div className="text-sm font-semibold">Next step</div>
+              <p className="mt-2 text-sm text-neutral-300">
+                If you already have your invite, use the button below. If you do not, contact support and we will route you.
+              </p>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {destination ? (
+                <Button href={destination}>
+                  Enter portal <LogIn className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button href="#/contact" variant="ghost">
+                  Contact support <Mail className="h-4 w-4" />
+                </Button>
+              )}
+              <Button href="#/pricing" variant="ghost">
+                View tiers <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-6">
+            <div className="text-sm font-semibold">Portal destination (placeholder)</div>
+            <p className="mt-2 text-sm text-neutral-400">
+              When you decide between Circle or Discord, paste the link into LINKS.circle or LINKS.discord in the code.
+            </p>
+            <div className="mt-4 space-y-2 text-sm text-neutral-300">
+              <div className="flex items-start gap-2">
+                <User className="mt-0.5 h-4 w-4 text-yellow-400" />
+                <span className="whitespace-normal break-normal">Circle: clean, branded member experience</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <User className="mt-0.5 h-4 w-4 text-yellow-400" />
+                <span className="whitespace-normal break-normal">Discord: fast chat, lightweight community</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="text-xs text-neutral-500">
+        If you have not received your access email within 10 minutes, check spam/junk, then contact support.
+      </section>
     </div>
   );
 }
@@ -874,17 +937,13 @@ function FaqCard({ q, a }) {
 function Contact() {
   return (
     <div className="space-y-10">
-      <SectionTitle
-        eyebrow="Apply / Contact"
-        title="Enroll, apply, or ask a question"
-        desc="If you have Stripe links set, use Pricing. This page is for questions and concierge invitations."
-      />
+      <SectionTitle eyebrow="Apply / Contact" title="Enroll, apply, or ask a question" desc="We’ll guide you to the right entry point." />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <ContactCard
           icon={Crown}
           title="Full Course"
-          desc="Questions, eligibility, or payment link support."
+          desc="Apply or purchase. Ask about founder pricing rules."
           ctaLabel="Email"
           href={`mailto:${BRAND.email}?subject=Full%20Course%20-%20The%20Upgrade%20Society`}
         />
@@ -896,11 +955,11 @@ function Contact() {
           href={`mailto:${BRAND.email}?subject=Hotel%20Hack%20Only%20-%20The%20Upgrade%20Society`}
         />
         <ContactCard
-          icon={Lock}
-          title="Concierge (Invitation-only)"
+          icon={Ticket}
+          title="Concierge (Application-only)"
           desc="$25,000 done-for-you. Limited roster."
-          ctaLabel="Request invitation"
-          href={`mailto:${BRAND.email}?subject=Concierge%20Invitation%20Request%20-%20The%20Upgrade%20Society`}
+          ctaLabel="Request application"
+          href={`mailto:${BRAND.email}?subject=Concierge%20Application%20Request%20-%20The%20Upgrade%20Society`}
         />
       </section>
 
@@ -911,14 +970,12 @@ function Contact() {
             <div className="mt-4 space-y-3 text-sm text-neutral-300">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-yellow-400" />
-                <a className="hover:underline" href={`mailto:${BRAND.email}`}>
-                  {BRAND.email}
-                </a>
+                <a className="hover:underline" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
               </div>
             </div>
             <div className="mt-6 rounded-3xl border border-white/10 bg-neutral-950/40 p-5">
               <div className="text-sm font-semibold">Quick note</div>
-              <p className="mt-2 text-sm text-neutral-300 break-normal">
+              <p className="mt-2 text-sm text-neutral-300">
                 If you’re asking about private aviation, include your route, dates, and flexibility window.
               </p>
             </div>
@@ -926,9 +983,7 @@ function Contact() {
 
           <div className="rounded-3xl border border-white/10 bg-neutral-950/40 p-6">
             <div className="text-sm font-semibold">Lead form (optional)</div>
-            <p className="mt-2 text-sm text-neutral-400 break-normal">
-              This default form uses mailto. Later, connect a real form endpoint and swap the action.
-            </p>
+            <p className="mt-2 text-sm text-neutral-400">This default form uses mailto. Later, connect a real form endpoint and swap the action.</p>
             <form className="mt-4 space-y-3" action={`mailto:${BRAND.email}`} method="post" encType="text/plain">
               <Field label="Name" placeholder="Full name" name="name" />
               <Field label="Email" placeholder="you@email.com" name="email" type="email" />
@@ -945,9 +1000,7 @@ function Contact() {
         </div>
       </section>
 
-      <section className="text-xs text-neutral-500">
-        By contacting us, you acknowledge communications may be used to coordinate enrollment and service logistics.
-      </section>
+      <section className="text-xs text-neutral-500">By contacting us, you acknowledge communications may be used to coordinate enrollment and service logistics.</section>
     </div>
   );
 }
@@ -958,8 +1011,8 @@ function ContactCard({ icon: Icon, title, desc, ctaLabel, href }) {
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10">
         <Icon className="h-5 w-5 text-yellow-400" />
       </div>
-      <div className="mt-4 text-lg font-semibold break-normal">{title}</div>
-      <div className="mt-2 text-sm text-neutral-300 break-normal">{desc}</div>
+      <div className="mt-4 text-lg font-semibold whitespace-normal break-normal">{title}</div>
+      <div className="mt-2 text-sm text-neutral-300 whitespace-normal break-normal">{desc}</div>
       <div className="mt-5">
         <Button href={href}>{ctaLabel}</Button>
       </div>
@@ -991,48 +1044,6 @@ function Field({ label, name, placeholder, type = "text", as, options }) {
   );
 }
 
-function Members() {
-  const destination = LINKS.circle || LINKS.discord;
-  const destinationName = LINKS.circle ? "Circle" : LINKS.discord ? "Discord" : "your community";
-
-  return (
-    <div className="space-y-10">
-      <SectionTitle eyebrow="Members" title="Members portal" desc="Secure access is delivered immediately after purchase." />
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-yellow-400" />
-            <div className="text-lg font-semibold">Welcome</div>
-          </div>
-          <p className="mt-3 text-sm text-neutral-300 break-normal">
-            Immediately after checkout, you will receive an email with your private portal access details. This page confirms your entry point.
-          </p>
-          <div className="mt-5 rounded-3xl border border-white/10 bg-neutral-950/40 p-5 text-sm text-neutral-300 break-normal">
-            Tip: keep your community link private - share it in post-purchase emails.
-          </div>
-        </div>
-
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
-          <div className="text-sm font-semibold break-normal">Continue to {destinationName}</div>
-          <p className="mt-2 text-sm text-neutral-400 break-normal">If the link is not set yet, this button will not redirect.</p>
-          <div className="mt-5">
-            {destination ? (
-              <Button href={destination}>
-                Go to {destinationName} <LogIn className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button href="#/contact" variant="ghost">
-                Ask us to connect it <Mail className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function Footer() {
   return (
     <footer className="border-t border-white/10 bg-neutral-950/70 backdrop-blur">
@@ -1040,37 +1051,23 @@ function Footer() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-semibold text-neutral-200">{BRAND.name}</div>
-            <div className="text-xs">
-              {BRAND.subtitle} • {BRAND.tagline}
-            </div>
+            <div className="text-xs">{BRAND.subtitle} • {BRAND.tagline}</div>
           </div>
-
           <div className="flex flex-wrap gap-3">
-            <button className="hover:text-white" onClick={() => goHash("#/program")}>
-              Program
-            </button>
-            <button className="hover:text-white" onClick={() => goHash("#/pricing")}>
-              Pricing
-            </button>
-            <button className="hover:text-white" onClick={() => goHash("#/testimonials")}>
-              Testimonials
-            </button>
-            <button className="hover:text-white" onClick={() => goHash("#/members")}>
-              Members
-            </button>
-            <button className="hover:text-white" onClick={() => goHash("#/contact")}>
-              Apply
-            </button>
-            {LINKS.theStandard && (
+            <a className="hover:text-white" href="#/program">Program</a>
+            <a className="hover:text-white" href="#/pricing">Pricing</a>
+            <a className="hover:text-white" href="#/testimonials">Testimonials</a>
+            <a className="hover:text-white" href="#/members">Members</a>
+            <a className="hover:text-white" href="#/contact">Apply</a>
+            {LINKS.theStandard && isHttpUrl(LINKS.theStandard) && (
               <a className="hover:text-white" href={LINKS.theStandard} target="_blank" rel="noreferrer">
-                THE STANDARD
+                THE STANDARD <ExternalLink className="inline h-3 w-3" />
               </a>
             )}
           </div>
         </div>
-
         <div className="mt-6 text-xs text-neutral-500">
-          © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+          © {new Date().getFullYear()} {BRAND.name}. All rights reserved. Terms, policies, and disclosures should be reviewed by counsel before launch.
         </div>
       </div>
     </footer>
@@ -1093,67 +1090,38 @@ function NotFound() {
 // Lightweight self-tests
 // -----------------------
 function runSelfTests() {
-  try {
-    const knownRoutes = new Set(["home", "program", "pricing", "testimonials", "about", "faq", "members", "contact"]);
+  // Keep this tiny; it's here to catch foot-guns when editing.
+  const knownRoutes = new Set(["home", "program", "pricing", "testimonials", "about", "faq", "members", "contact"]);
 
-    NAV.forEach((n) => {
-      if (!knownRoutes.has(n.key)) throw new Error(`NAV route key not implemented: ${n.key}`);
-    });
+  NAV.forEach((n) => {
+    if (!knownRoutes.has(n.key)) throw new Error(`NAV route key not implemented: ${n.key}`);
+  });
 
-    if (!YT.heroVideoId) throw new Error("YT.heroVideoId missing");
-    if (!Array.isArray(YT.testimonials)) throw new Error("YT.testimonials missing");
-    if (YT.testimonials.length !== 6) throw new Error("Expected exactly 6 testimonials");
+  if (YT.testimonials.length !== 6) throw new Error("Expected exactly 6 testimonials");
 
-    // Checkout links should be either empty or real Stripe links (placeholders treated as not set)
-    [CHECKOUT.hotelHack, CHECKOUT.fullCourse].forEach((x) => {
-      if (x && x.trim().length > 0 && !isHttpUrl(x)) throw new Error("CHECKOUT links must start with http(s)://");
-    });
+  [CHECKOUT.hotelHack, CHECKOUT.fullCourse].forEach((x) => {
+    if (x && x.trim().length > 0 && !isHttpUrl(x)) throw new Error("CHECKOUT links must start with http(s)://");
+  });
 
-    // Stripe link sanity (optional)
-    [CHECKOUT.hotelHack, CHECKOUT.fullCourse].forEach((x) => {
-      if (x && x.trim().length > 0 && !isHttpUrl(x)) throw new Error("CHECKOUT links must start with http(s)://");
-    });
-
-    if (!ASSETS.logoSrc) throw new Error("ASSETS.logoSrc missing");
-    if (!ASSETS.aboutPhotoSrc) throw new Error("ASSETS.aboutPhotoSrc missing");
-
-    // Extra test: ensure goHash exists
-    if (typeof goHash !== "function") throw new Error("goHash missing");
-
-    // Warn (not fail) if placeholder YouTube IDs are still present.
-    const placeholders = new Set([
-      "dQw4w9WgXcQ",
-      "M7lc1UVf-VE",
-      "ysz5S6PUM-U",
-      "ScMzIvxBSi4",
-      "aqz-KE-bpKQ",
-      "w7ejDZ8SWv8",
-    ]);
-
-    if (placeholders.has(YT.heroVideoId)) {
-      // eslint-disable-next-line no-console
-      console.warn("Heads up: heroVideoId is still a placeholder. Replace YT.heroVideoId with your sizzle reel ID.");
-    }
-
-    YT.testimonials.forEach((t) => {
-      if (placeholders.has(t.id)) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          "Heads up: a testimonial videoId is still a placeholder. Replace YT.testimonials IDs with real videos."
-        );
-      }
-    });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("Upgrade Society self-test failed:", e);
-  }
+  // Catch common broken asset paths early
+  [ASSETS.logoSrc, ASSETS.aboutPhotoSrc].forEach((p) => {
+    if (typeof p !== "string" || !p.startsWith("/")) throw new Error("ASSETS paths should start with '/'");
+  });
 }
 
 export default function UpgradeSocietyWebsite() {
   const { key } = useHashRoute();
 
   useEffect(() => {
-    runSelfTests();
+    // run once on mount (client)
+    if (typeof window !== "undefined") {
+      try {
+        runSelfTests();
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
+      }
+    }
   }, []);
 
   const page = useMemo(() => {
